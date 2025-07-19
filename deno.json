@@ -1,0 +1,5 @@
+{
+  "tasks": {
+    "ai": "deno run --allow-all ai.js"
+  }
+}
