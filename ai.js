@@ -5,20 +5,23 @@
 import { google } from "npm:@ai-sdk/google";
 import { generateText } from "npm:ai";
 
-let TOKENOUT = 12288;
+let TOKENOUT = 32768;
 
 const JOKEBOT_MODE = Deno.args.includes("-j");
 const LESBIAN_MODE = Deno.args.includes("-l");
 const FLASHARG = Deno.args.includes("-flash");
+const PROARG = Deno.args.includes("-pro");
 
 let SYSTEM_PROMPT;
 let MODEL;
-let TEMP = 1;
+let TEMP = 1.25;
 
 if (FLASHARG) {
   MODEL = "gemini-2.5-flash";
+} else if (PROARG) {
+  MODEL = "gemini-2.5-pro";
 } else {
-  MODEL = "gemini-2.5-flash-lite-preview-06-17";
+  MODEL = "gemini-2.5-flash-lite";
 }
 
 if (JOKEBOT_MODE) {
@@ -36,9 +39,7 @@ const HISTORY_DIR = "./histories/";
 const CURRENT_SESSION_FILE_PATH = HISTORY_DIR + "current_chat_session.txt";
 const JOKEBOT_HISTORY_FILE_PATH = HISTORY_DIR + "jokebot_history.txt";
 
-/**
- * Ensures the history directory exists.
- */
+// Ensures the history directory exists.
 async function ensureHistoryDirectoryExists() {
   try {
     await Deno.mkdir(HISTORY_DIR, { recursive: true });
@@ -63,7 +64,9 @@ async function loadChatHistory(filePath = CURRENT_SESSION_FILE_PATH) {
     if (error instanceof Deno.errors.NotFound) {
       return ""; // File does not exist, return empty history
     }
-    console.error(`Failed to load chat history from ${filePath}: ${error.message}`);
+    console.error(
+      `Failed to load chat history from ${filePath}: ${error.message}`,
+    );
     return ""; // Return empty on other errors
   }
 }
@@ -73,7 +76,11 @@ async function loadChatHistory(filePath = CURRENT_SESSION_FILE_PATH) {
  * @param {string} prompt The user\'s prompt.
  * @param {string} response The AI\'s response.
  */
-async function saveChatSession(prompt, response, filePath = CURRENT_SESSION_FILE_PATH) {
+async function saveChatSession(
+  prompt,
+  response,
+  filePath = CURRENT_SESSION_FILE_PATH,
+) {
   const content = `--- PROMPT ---\n${prompt}\n--- RESPONSE ---\n${response}\n\n`;
   try {
     await ensureHistoryDirectoryExists(); // Ensure directory exists before saving
@@ -83,7 +90,9 @@ async function saveChatSession(prompt, response, filePath = CURRENT_SESSION_FILE
     });
     console.log(`Chat session saved to ${filePath}`);
   } catch (error) {
-    console.error(`Failed to save chat session to ${filePath}: ${error.message}`);
+    console.error(
+      `Failed to save chat session to ${filePath}: ${error.message}`,
+    );
   }
 }
 
@@ -178,16 +187,24 @@ async function main() {
 
       if (loadOption && loadOption.toLowerCase() !== "n") {
         const selectedIndex = parseInt(loadOption) - 1;
-        if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < availableHistories.length) {
+        if (
+          !isNaN(selectedIndex) &&
+          selectedIndex >= 0 &&
+          selectedIndex < availableHistories.length
+        ) {
           const selectedFile = availableHistories[selectedIndex];
           const selectedFilePath = HISTORY_DIR + selectedFile;
           try {
             currentChatHistory = await loadChatHistory(selectedFilePath);
             // Overwrite the current session file with the loaded history to continue appending to it
-            await Deno.writeTextFile(CURRENT_SESSION_FILE_PATH, currentChatHistory, {
-              create: true,
-              overwrite: true,
-            });
+            await Deno.writeTextFile(
+              CURRENT_SESSION_FILE_PATH,
+              currentChatHistory,
+              {
+                create: true,
+                overwrite: true,
+              },
+            );
             console.log(`Loaded chat history from '${selectedFile}'.`);
           } catch (error) {
             console.error(`Failed to load selected history: ${error.message}`);
@@ -203,7 +220,9 @@ async function main() {
         // No need to delete CURRENT_SESSION_FILE_PATH again
       }
     } else {
-      console.log("No previous chat histories found. Starting a new chat session.");
+      console.log(
+        "No previous chat histories found. Starting a new chat session.",
+      );
       // No need to delete CURRENT_SESSION_FILE_PATH again
     }
   }
@@ -217,7 +236,9 @@ async function main() {
     }
 
     const fullPrompt =
-      SYSTEM_PROMPT + currentChatHistory + `--- PROMPT ---\n${userPrompt}\n--- RESPONSE ---\n`;
+      SYSTEM_PROMPT +
+      currentChatHistory +
+      `--- PROMPT ---\n${userPrompt}\n--- RESPONSE ---\n`;
 
     try {
       const { text: aiResponse } = await generateText({
@@ -230,9 +251,17 @@ async function main() {
       console.log(`\nAI: ${aiResponse}`);
 
       if (JOKEBOT_MODE) {
-        await saveChatSession(userPrompt, aiResponse, JOKEBOT_HISTORY_FILE_PATH);
+        await saveChatSession(
+          userPrompt,
+          aiResponse,
+          JOKEBOT_HISTORY_FILE_PATH,
+        );
       } else {
-        await saveChatSession(userPrompt, aiResponse, CURRENT_SESSION_FILE_PATH);
+        await saveChatSession(
+          userPrompt,
+          aiResponse,
+          CURRENT_SESSION_FILE_PATH,
+        );
       }
       currentChatHistory += `--- PROMPT ---\n${userPrompt}\n--- RESPONSE ---\n${aiResponse}\n\n`; // Update in-memory history
     } catch (error) {
@@ -245,7 +274,9 @@ async function main() {
     if (!continueChat) {
       console.log("Ending chat session.");
       if (!JOKEBOT_MODE) {
-        const saveHistory = confirm("Do you want to save this chat history? (Y/n)");
+        const saveHistory = confirm(
+          "Do you want to save this chat history? (Y/n)",
+        );
         if (saveHistory) {
           try {
             const timestampedFilename = getTimestampedFilename();

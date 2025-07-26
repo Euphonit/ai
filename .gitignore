@@ -1,2 +1,3 @@
 .env
 .DS_Store
+./histories/jokebot_history.txt
