@@ -9,6 +9,7 @@ let TOKENOUT = 32768;
 
 const JOKEBOT_MODE = Deno.args.includes("-j");
 const LESBIAN_MODE = Deno.args.includes("-l");
+const CLOSEDAI_MODE = Deno.args.includes("-c");
 const FLASHARG = Deno.args.includes("-flash");
 const PROARG = Deno.args.includes("-pro");
 
@@ -29,6 +30,9 @@ if (JOKEBOT_MODE) {
   TEMP = 1.15;
 } else if (LESBIAN_MODE) {
   SYSTEM_PROMPT = await Deno.readTextFile("./prompts/lesbian.txt");
+  TEMP = 1.15;
+} else if (CLOSEDAI_MODE) {
+  SYSTEM_PROMPT = await Deno.readTextFile("./prompts/closedai.txt");
   TEMP = 1.15;
 } else {
   SYSTEM_PROMPT = await Deno.readTextFile("./prompts/default.txt");
